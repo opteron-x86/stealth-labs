@@ -1,0 +1,1 @@
+kali_ami_id = "ami-0781eff9a68fb8c58"

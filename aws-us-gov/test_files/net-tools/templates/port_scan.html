@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Port Scan</h1>
+<form method="post">
+  IP Address: <input type="text" name="ip">
+  <input type="submit" value="Scan" class="btn btn-primary">
+</form>
+{% if result %}
+<h2>Open Ports</h2>
+<pre>{{ result }}</pre>
+{% endif %}
+{% endblock %}

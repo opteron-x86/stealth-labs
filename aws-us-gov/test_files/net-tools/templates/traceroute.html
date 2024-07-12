@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Traceroute</h1>
+<form method="post">
+  IP Address: <input type="text" name="ip">
+  <input type="submit" value="Traceroute" class="btn btn-primary">
+</form>
+{% if result %}
+<h2>Traceroute Result</h2>
+<pre>{{ result }}</pre>
+{% endif %}
+{% endblock %}
