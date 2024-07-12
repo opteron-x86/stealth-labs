@@ -1,5 +1,0 @@
-Flask
-Flask-WTF
-WTForms
-Flask-Bootstrap
-requests
