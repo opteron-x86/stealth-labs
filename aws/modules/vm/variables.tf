@@ -84,3 +84,9 @@ variable "iam_instance_profile" {
   type        = string
   default     = ""
 }
+
+variable "target_volume" {
+  description = "The EBS volume attached to the target VM"
+  type        = string
+  default     = ""
+}

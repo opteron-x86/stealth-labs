@@ -102,9 +102,15 @@ module "security_group_target" {
   ]
 }
 
-resource "aws_s3_bucket" "flask_app_bucket" {
-  bucket = "flask-app-templates"
+# Generate a random integer for the VM names
+resource "random_integer" "lab_name_suffix" {
+  min = 10
+  max = 99
+} 
 
+resource "aws_s3_bucket" "flask_app_bucket" {
+  bucket = "flask-app-templates-${random_integer.lab_name_suffix.result}"
+  depends_on = [random_integer.lab_name_suffix] 
   lifecycle {
     prevent_destroy = false
   }
@@ -136,7 +142,7 @@ resource "aws_iam_role" "canteen_ec2_role" {
 }
 
 resource "aws_iam_policy" "canteen_access_policy" {
-  name        = "canteen_access_policy"
+  name        = "canteen_access_policy-${random_integer.lab_name_suffix.result}"
   description = "Allow Canteen Lab to access the S3 bucket amd EBS volumes"
   policy = jsonencode({
     "Version": "2012-10-17",
@@ -149,8 +155,8 @@ resource "aws_iam_policy" "canteen_access_policy" {
                 "s3:PutObject"
             ],
             "Resource": [
-                "arn:aws:s3:::flask-app-templates",
-                "arn:aws:s3:::flask-app-templates/*"
+                "arn:aws:s3:::flask-app-templates-${random_integer.lab_name_suffix.result}",
+                "arn:aws:s3:::flask-app-templates-${random_integer.lab_name_suffix.result}/*"
             ]
         },
       {
@@ -186,31 +192,41 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
   role = aws_iam_role.canteen_ec2_role.name
 }
 
-# Generate a random integer for the VM names
-resource "random_integer" "vm_name_suffix" {
-  min = 10
-  max = 99
+# Get the latest Ubuntu AMI
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical's AWS account ID
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
 }
 
 module "vm" {
   source = "../modules/vm"
 
   # Attacker Kali VM
-  ami_attacker_01       = "<kali_ami_id>"
+  ami_attacker_01       = var.kali_ami
   instance_type_attacker = "t3.medium"
   subnet_id_attacker    = module.vpc.public_subnet_attacker
   vpc_id_attacker       = module.vpc.vpc_id_attacker
   security_group_attacker = module.security_group_attacker.security_group_id
-  attacker_vm_name      = "black-cat-${random_integer.vm_name_suffix.result}"
+  attacker_vm_name      = "black-cat-${random_integer.lab_name_suffix.result}"
   volume_size_attacker  = 30
 
   # Target Ubuntu VM
-  ami_target_01       = "<target_ami_id>"
+  ami_target_01       = data.aws_ami.ubuntu.id
   instance_type_target = "t3.micro"
   subnet_id_target    = module.vpc.public_subnet_target
   vpc_id_target       = module.vpc.vpc_id_target
   security_group_target = module.security_group_target.security_group_id
-  target_vm_name      = "white-cat-${random_integer.vm_name_suffix.result}"
+  target_vm_name      = "white-cat-${random_integer.lab_name_suffix.result}"
   volume_size_target  = 8
   user_data           = data.template_file.userdata.rendered 
   availability_zone   = var.selected_az
@@ -218,13 +234,6 @@ module "vm" {
 
   user_ip    = var.user_ip
   admin_ip   = var.admin_ip
-}
-
-# Attach the existing EBS volume to the target instance
-resource "aws_volume_attachment" "target_ebs_attachment" {
-  device_name = "/dev/sdf"
-  volume_id   = "<enter_volume_id>"
-  instance_id = module.vm.target_instance_id
 }
 
 module "iam_workshop_user" {

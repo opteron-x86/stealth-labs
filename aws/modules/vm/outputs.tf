@@ -22,3 +22,7 @@ output "target_private_key" {
 output "target_instance_id" {
   value = aws_instance.target_vm.id
 }
+
+output "target_volume_id" {
+  value = aws_ebs_volume.target_volume.id
+}

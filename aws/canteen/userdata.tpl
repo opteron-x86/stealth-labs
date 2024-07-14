@@ -28,7 +28,7 @@ cat /newvolume/workshop_keys.txt
 # Unmount the EBS volume
 sudo umount /newvolume
 
-aws ec2 detach-volume --volume-id vol-072f0679c8217523e
+aws ec2 detach-volume --volume-id ${target_volume}
 
 # Add canteen user
 useradd -m -s /bin/bash canteen
@@ -53,7 +53,9 @@ sleep 2
 cat << 'EOF' > /opt/net_tools/upload_logs.sh
 #!/bin/bash
 
-aws s3 cp "/var/log/net_tools.log" "s3://flask-app-templates/net_tools.log" --acl private
+BUCKET_NAME="flask-app-templates-${random_integer.vm_name_suffix.result}" 
+
+aws s3 cp "/var/log/net_tools.log" "s3://${BUCKET_NAME}/net_tools.log" --acl private
 
 EOF
 
@@ -75,7 +77,7 @@ logging.basicConfig(filename='/var/log/net_tools.log', level=logging.INFO, forma
 
 app = Flask(__name__)
 
-region_name = 'us-gov-east-1'
+region_name = 'us-east-2'
 s3_client = boto3.client('s3', region_name=region_name)
 bucket_name = 'flask-app-templates'
 
