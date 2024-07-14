@@ -68,7 +68,7 @@ module "security_group_attacker" {
   source = "../modules/sg"
 
   vpc_id              = module.vpc.vpc_id_attacker
-  allowed_cidr_blocks = ["149.88.105.233/32", module.vpc.cidr_block_target]
+  allowed_cidr_blocks = ["${var.user_ip}/32", module.vpc.cidr_block_target]
   ingress_rules = [
     {
       from_port = 22
@@ -76,15 +76,10 @@ module "security_group_attacker" {
       protocol  = "tcp"
     },
     {
-      from_port = 8080
+      from_port = 8081 # VNC port
       to_port   = 8081
       protocol  = "tcp"
     },
-    {
-      from_port = 7777
-      to_port   = 7788
-      protocol  = "tcp"
-    }
   ]
 }
 
@@ -220,6 +215,9 @@ module "vm" {
   user_data           = data.template_file.userdata.rendered 
   availability_zone   = var.selected_az
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
+
+  user_ip    = var.user_ip
+  admin_ip   = var.admin_ip
 }
 
 # Attach the existing EBS volume to the target instance
