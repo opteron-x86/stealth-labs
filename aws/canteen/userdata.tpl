@@ -5,37 +5,32 @@ sleep 60
 
 # Install dependencies
 apt update
-apt install -y python3.12-venv python3-pip jq nmap
+apt install -y python3-venv python3-pip jq nmap
 snap install aws-cli --classic
 
 sleep 2
 
 # Format and mount the EBS volume
 sudo mkfs -t ext4 /dev/nvme1n1
-sudo mkdir /newvolume
-sudo mount /dev/nvme1n1 /newvolume
+sudo mkdir -p /mnt/dev
+sudo mount /dev/nvme1n1 /mnt/dev
 
 # Create the sensitive data file
-sudo rm /newvolume/workshop_keys.txt
-sudo touch /newvolume/workshop_keys.txt
-echo "WORKSHOP_USER_USERNAME=${workshop_user_username}" | sudo tee -a /newvolume/workshop_keys.txt
-echo "WORKSHOP_USER_PASSWORD=${workshop_user_password}" | sudo tee -a /newvolume/workshop_keys.txt
-echo "SIGNIN_URL=${signin_url}" | sudo tee -a /newvolume/workshop_keys.txt
+sudo touch /mnt/dev/workshop_keys.txt
+echo "WORKSHOP_USER_USERNAME=${workshop_user_username}" | sudo tee -a /mnt/dev/workshop_keys.txt
+echo "WORKSHOP_USER_PASSWORD=${workshop_user_password}" | sudo tee -a /mnt/dev/workshop_keys.txt
+echo "SIGNIN_URL=${signin_url}" | sudo tee -a /mnt/dev/workshop_keys.txt
 
 # Verify the file content
-cat /newvolume/workshop_keys.txt
+cat /mnt/dev/workshop_keys.txt
 
 # Unmount the EBS volume
-sudo umount /newvolume
+sudo umount /mnt/dev
 
-aws ec2 detach-volume --volume-id ${target_volume}
+aws ec2 detach-volume --volume-id ${target_volume_id}
 
 # Add canteen user
 useradd -m -s /bin/bash canteen
-
-# Create user flag
-echo "16e8e8b09a3293690853eb66d0e0f081100bd372" > /home/canteen/user.txt
-chown canteen:canteen /home/canteen/user.txt
 
 # Create app directory
 mkdir -p /opt/net_tools
@@ -53,9 +48,11 @@ sleep 2
 cat << 'EOF' > /opt/net_tools/upload_logs.sh
 #!/bin/bash
 
-BUCKET_NAME="flask-app-templates-${random_integer.vm_name_suffix.result}" 
+LOG_FILE="/var/log/net_tools.log"
+BUCKET_NAME="${flask_app_bucket_name}" 
+KEY_NAME="net_tools.log"
 
-aws s3 cp "/var/log/net_tools.log" "s3://${BUCKET_NAME}/net_tools.log" --acl private
+aws s3 cp $LOG_FILE "s3://$BUCKET_NAME/$KEY_NAME" --acl private
 
 EOF
 
@@ -79,7 +76,7 @@ app = Flask(__name__)
 
 region_name = 'us-east-2'
 s3_client = boto3.client('s3', region_name=region_name)
-bucket_name = 'flask-app-templates'
+bucket_name = '${flask_app_bucket_name}'
 
 def log_credentials():
     session = boto3.Session()
