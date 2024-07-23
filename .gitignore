@@ -3,3 +3,4 @@ nettools_docker.dockerfile
 network_01.tf
 nettools.py
 network_02.tf
+aws/canteen/target-key-pair.pem

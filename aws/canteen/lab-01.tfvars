@@ -1,5 +1,8 @@
-user_ip           = "192.168.1.100"
-admin_ip          = "10.0.0.5"
-lab_name          = "lab-01"
-kali_ami          = "ami-02370f5617f57edbe"
+user_ip           = "192.168.0.10/32"
+admin_ip          = "192.168.0.11/32"
+lab_name          = "shor"
+kali_ami          = "ami-00000000000000000"
 create_target_volume = true
+workshop_user_username = "shor-workshop-user"
+notebook_instance_name = "shor-notebook-instance"
+notebook_instance_role_name = "shor-instance-role"
