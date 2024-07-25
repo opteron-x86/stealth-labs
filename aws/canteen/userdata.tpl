@@ -33,10 +33,6 @@ aws ec2 detach-volume --volume-id ${target_volume}
 # Add canteen user
 useradd -m -s /bin/bash canteen
 
-# Create user flag
-echo "16e8e8b09a3293690853eb66d0e0f081100bd372" > /home/canteen/user.txt
-chown canteen:canteen /home/canteen/user.txt
-
 # Create app directory
 mkdir -p /opt/net_tools
 touch /var/log/net_tools.log
