@@ -23,6 +23,8 @@ output "target_instance_id" {
   value = aws_instance.target_vm.id
 }
 
+# Output the EBS Volume ID
 output "target_volume_id" {
-  value = aws_ebs_volume.target_volume.id
+  value       = aws_ebs_volume.target_volume.id
+  description = "The ID of the EBS volume attached to the target instance"
 }

@@ -46,16 +46,20 @@ resource "aws_instance" "target_vm" {
   }
 }
 
+# Target EBS Volume (created dynamically per workspace)
 resource "aws_ebs_volume" "target_volume" {
-  count             = var.create_target_volume ? 1 : 0 # Conditional creation
   availability_zone = var.availability_zone
-  size              = 8
+  size              = 8  # Adjust size as needed
   type              = "gp3"
+  tags = {
+    Name = "target-volume-${var.lab_name}"
+  }
 }
 
+# Volume Attachment (attached dynamically to target instance)
 resource "aws_volume_attachment" "target_ebs_attachment" {
-  count       = var.create_target_volume ? 1 : 0 
   device_name = "/dev/sdf"
   volume_id   = aws_ebs_volume.target_volume.id
   instance_id = aws_instance.target_vm.id
+  depends_on  = [aws_instance.target_vm] 
 }

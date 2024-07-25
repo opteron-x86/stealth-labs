@@ -64,3 +64,24 @@ output "signin_url" {
 output "iam_workshop_user_password" {
   value = module.iam_workshop_user.password
 }
+
+output "user_ip" {
+  value = var.user_ip
+}
+
+output "admin_ip" {
+  value = var.admin_ip
+}
+
+output "lab_name" {
+  value = var.lab_name
+}
+
+output "kali_ami" {
+  value = var.kali_ami
+}
+
+output "flask_app_bucket_name" {
+  value = aws_s3_bucket.flask_app_bucket.bucket
+  description = "The name of the dynamically generated S3 bucket"
+}

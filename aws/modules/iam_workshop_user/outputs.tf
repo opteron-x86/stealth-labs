@@ -6,7 +6,7 @@ output "signin_url" {
   value = join("",[
     "https://",
     data.aws_caller_identity.current.account_id,
-    ".signin.amazon.aws.com/console"
+    ".signin.aws.amazon.com/console"
   ])
 }
 

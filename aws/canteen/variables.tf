@@ -9,3 +9,24 @@ variable "notebook_instance_name" {
 variable "notebook_instance_role_name" {
   type    = string
 }
+
+variable "user_ip" {
+  type    = string
+}
+
+variable "admin_ip" {
+  type    = string
+}
+
+variable "kali_ami" {
+  type    = string
+}
+
+variable "create_target_volume" {
+  type    = bool
+  default = false
+}
+
+variable "lab_name" {
+  type    = string
+}

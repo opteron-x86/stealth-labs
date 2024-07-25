@@ -9,7 +9,7 @@ data "aws_availability_zones" "available" {}
 
 # Define the selected AZ (can also be hardcoded)
 variable "selected_az" {
-  default = "us-east-2"
+  default = "us-east-2a"
   #default = data.aws_availability_zones.available.names[0]
 }
 
@@ -68,19 +68,9 @@ module "security_group_attacker" {
   source = "../modules/sg"
 
   vpc_id              = module.vpc.vpc_id_attacker
-  allowed_cidr_blocks = ["${var.user_ip}/32", module.vpc.cidr_block_target]
-  ingress_rules = [
-    {
-      from_port = 22
-      to_port   = 22
-      protocol  = "tcp"
-    },
-    {
-      from_port = 8081 # VNC port
-      to_port   = 8081
-      protocol  = "tcp"
-    },
-  ]
+  allowed_cidr_blocks = ["${var.user_ip}","${var.admin_ip}", module.vpc.cidr_block_target]
+  user_ip    = var.user_ip
+  admin_ip   = var.admin_ip
 }
 
 module "security_group_target" {
@@ -88,18 +78,8 @@ module "security_group_target" {
 
   vpc_id              = module.vpc.vpc_id_target
   allowed_cidr_blocks = [module.vpc.cidr_block_attacker]
-  ingress_rules = [
-    {
-      from_port = 22
-      to_port   = 22
-      protocol  = "tcp"
-    },
-    {
-      from_port = 8080
-      to_port   = 8081
-      protocol  = "tcp"
-    }
-  ]
+  user_ip    = var.user_ip
+  admin_ip   = var.admin_ip
 }
 
 # Generate a random integer for the VM names
@@ -109,8 +89,8 @@ resource "random_integer" "lab_name_suffix" {
 } 
 
 resource "aws_s3_bucket" "flask_app_bucket" {
-  bucket = "flask-app-templates-${random_integer.lab_name_suffix.result}"
-  depends_on = [random_integer.lab_name_suffix] 
+  bucket = "${var.lab_name}-app-templates"
+
   lifecycle {
     prevent_destroy = false
   }
@@ -125,7 +105,7 @@ resource "aws_s3_object" "web_templates" {
 }
 
 resource "aws_iam_role" "canteen_ec2_role" {
-  name = "canteen_access_role"
+  name = "${var.lab_name}_ec2_access_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -142,7 +122,7 @@ resource "aws_iam_role" "canteen_ec2_role" {
 }
 
 resource "aws_iam_policy" "canteen_access_policy" {
-  name        = "canteen_access_policy-${random_integer.lab_name_suffix.result}"
+  name        = "${var.lab_name}_ec2_access_policy"
   description = "Allow Canteen Lab to access the S3 bucket amd EBS volumes"
   policy = jsonencode({
     "Version": "2012-10-17",
@@ -155,8 +135,8 @@ resource "aws_iam_policy" "canteen_access_policy" {
                 "s3:PutObject"
             ],
             "Resource": [
-                "arn:aws:s3:::flask-app-templates-${random_integer.lab_name_suffix.result}",
-                "arn:aws:s3:::flask-app-templates-${random_integer.lab_name_suffix.result}/*"
+                "arn:aws:s3:::${var.lab_name}-app-templates",
+                "arn:aws:s3:::${var.lab_name}-app-templates/*"
             ]
         },
       {
@@ -199,7 +179,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-*22.04*amd64-server-*"]
   }
 
   filter {
@@ -211,6 +191,7 @@ data "aws_ami" "ubuntu" {
 module "vm" {
   source = "../modules/vm"
 
+  lab_name              = var.lab_name
   # Attacker Kali VM
   ami_attacker_01       = var.kali_ami
   instance_type_attacker = "t3.medium"
@@ -231,9 +212,7 @@ module "vm" {
   user_data           = data.template_file.userdata.rendered 
   availability_zone   = var.selected_az
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
-
-  user_ip    = var.user_ip
-  admin_ip   = var.admin_ip
+  create_target_volume = var.create_target_volume
 }
 
 module "iam_workshop_user" {
@@ -261,6 +240,8 @@ data "template_file" "userdata" {
   vars = {
     workshop_user_username = module.iam_workshop_user.username
     workshop_user_password = module.iam_workshop_user.password
-    signin_url            = module.iam_workshop_user.signin_url
-  }
+    signin_url             = module.iam_workshop_user.signin_url
+    target_volume_id       = module.vm.target_volume_id
+    flask_app_bucket_name  = aws_s3_bucket.flask_app_bucket.bucket
+    }
 }
